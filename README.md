@@ -4,6 +4,13 @@ Copyright © 2026 myNOC LLC. All rights reserved.
 
 A .NET 11 Morse trainer for Windows, Android, iOS, and the browser. A shared Razor UI runs inside MAUI Blazor Hybrid and a standalone Blazor WebAssembly SPA. The browser app needs only static hosting; it does not require an ASP.NET server or account.
 
+Repository: [erenken/morseCodeTrainer](https://github.com/erenken/morseCodeTrainer). The initial application is on `work/initial-setup`; `main` is protected for changes that pass validation. To check out the application on another machine:
+
+```sh
+git clone --branch work/initial-setup https://github.com/erenken/morseCodeTrainer.git
+cd morseCodeTrainer
+```
+
 ## What is implemented
 
 - **Practice:** random character groups, starter letters, full alphabet, numbers, sound/light replay, answer checking, and session scoring.
@@ -147,9 +154,9 @@ GitVersion requires an initialized repository with at least one commit. No remot
 - **PR:** test results, total/patch coverage, SPA publishing, and Windows/Android/iOS compilation; a final `validate / Required checks` job fails if any dependency fails or is skipped.
 - **Release:** on `main`, GitVersion determines the version; all validation reruns before creating a GitHub prerelease with the SPA and native build archives. Re-running an existing version keeps its assets unchanged.
 - Releases are marked prerelease while .NET 11 is RC. Windows is an unpackaged build; Android output is a development APK; iOS output is an unsigned simulator build. Store-ready MSIX/AAB/IPA distribution needs signing identities, provisioning, and store configuration. No signing credentials are embedded.
-- The iOS job expects `/Applications/Xcode_27.0.app` on `macos-26`. If runner images change, select the Xcode version required by the pinned workload; do not suppress the SDK compatibility checks.
+- The iOS job uses GitHub's Apple Silicon `xcode-27` preview runner and selects `/Applications/Xcode_27.0.app`. The `macos-26` image does not include Xcode 27.0. If runner images change, select the Xcode version required by the pinned workload; do not suppress the SDK compatibility checks. See [GitHub's Xcode 27 runner announcement](https://github.com/actions/runner-images/issues/14404).
 
-**Required GitHub setting:** workflow YAML cannot enforce merge restrictions on its own. After creating the repository and running the PR workflow, import `.github/branch-ruleset.json` under **Settings → Rules → Rulesets**, or create an equivalent rule requiring pull requests and the `validate / Required checks` status on `main`. Confirm the exact check name from the first run. The ruleset is prepared locally and is not activated automatically.
+**GitHub protection:** the `Main requires passing validation` ruleset is active in `erenken/morseCodeTrainer`. It requires pull requests and an up-to-date `validate / Required checks` status before merging to `main`. For another repository, import `.github/branch-ruleset.json` under **Settings → Rules → Rulesets** and confirm the status check name after its first run; workflow YAML alone does not enforce merge restrictions.
 
 To deploy the SPA, publish and serve `artifacts/web/wwwroot` over HTTPS:
 

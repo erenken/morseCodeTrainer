@@ -78,7 +78,7 @@ jobs:
             workload: maui-android
             rid: android-arm64
           - platform: iOS
-            runner: macos-26
+            runner: xcode-27
             framework: net11.0-ios
             workload: maui-ios
             rid: iossimulator-arm64
