@@ -4,6 +4,8 @@ Copyright © 2026 myNOC LLC. All rights reserved.
 
 A .NET 11 Morse trainer for Windows, Android, iOS, and the browser. A shared Razor UI runs inside MAUI Blazor Hybrid and a standalone Blazor WebAssembly SPA. The browser app needs only static hosting; it does not require an ASP.NET server or account.
 
+**Web app:** [morsecode.mynoc.com](https://morsecode.mynoc.com/)
+
 Repository: [erenken/morseCodeTrainer](https://github.com/erenken/morseCodeTrainer). The application is on `main`, which requires pull requests and passing validation. To check out the application on another machine:
 
 ```sh
