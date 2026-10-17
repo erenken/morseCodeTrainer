@@ -151,7 +151,7 @@ dotnet gitversion
 
 GitVersion requires an initialized repository with at least one commit. No remote repository, commits, or releases are created by this scaffold.
 
-- **PR:** test results, total/patch coverage, SPA publishing, and Windows/Android/iOS compilation; a final `validate / Required checks` job fails if any dependency fails or is skipped.
+- **PR:** validation starts when a pull request is opened or reopened, and reruns when commits are pushed to that PR. Work-branch pushes without an open PR do not start validation; manual runs remain available. Checks include test results, total/patch coverage, SPA publishing, and Windows/Android/iOS compilation; a final `validate / Required checks` job fails if any dependency fails or is skipped.
 - **Release:** on `main`, GitVersion determines the version; all validation reruns before creating a GitHub prerelease with the SPA and native build archives. Re-running an existing version keeps its assets unchanged.
 - Releases are marked prerelease while .NET 11 is RC. Windows is an unpackaged build; Android output is a development APK; iOS output is an unsigned simulator build. Store-ready MSIX/AAB/IPA distribution needs signing identities, provisioning, and store configuration. No signing credentials are embedded.
 - The iOS job uses GitHub's Apple Silicon `xcode-27` preview runner and selects `/Applications/Xcode_27.0.app`. The `macos-26` image does not include Xcode 27.0. If runner images change, select the Xcode version required by the pinned workload; do not suppress the SDK compatibility checks. See [GitHub's Xcode 27 runner announcement](https://github.com/actions/runner-images/issues/14404).
