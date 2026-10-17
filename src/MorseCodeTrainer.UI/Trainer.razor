@@ -1,0 +1,185 @@
+@* Copyright © 2026 myNOC LLC. All rights reserved. *@
+@implements IDisposable
+@using Microsoft.Extensions.Logging
+@inject ILogger<Trainer> Logger
+@inject IMorseCodec Codec
+@inject MorseTransmission Transmission
+@inject TrainingSession Training
+@inject MediaSession Media
+
+<div class="app-shell">
+	<aside class="sidebar">
+		<a class="brand" href="" aria-label="Morse Code Trainer home"><span class="brand-mark">• −</span><span>MORSE<span class="brand-sub">CODE TRAINER</span></span></a>
+		<div class="nav-caption">YOUR SIGNAL STUDIO</div>
+		<nav aria-label="Main navigation">
+			@foreach (var item in _tabs)
+			{
+				<button class="nav-item @(_tab == item ? "selected" : "")" disabled="@_starting" aria-current="@(_tab == item ? "page" : null)" @onclick="() => ChangeTab(item)"><span class="nav-symbol">@TabIcon(item)</span>@item</button>
+			}
+		</nav>
+		<div class="sidebar-note"><span class="status-dot"></span> ALL SIGNALS STAY LOCAL<p>Practice, transmit, and listen.<br />One universal language.</p></div>
+		<footer>© 2026 myNOC LLC</footer>
+	</aside>
+	<main>
+		<header class="topbar"><span>WORKSPACE <span class="breadcrumb">/ @_tab</span></span><span class="badge">INTERNATIONAL MORSE</span></header>
+		<div class="workspace">
+			<div class="page-heading"><div><div class="eyebrow">A LITTLE PRACTICE. A CLEARER SIGNAL.</div><h1>@Heading</h1><p>@Description</p></div><span class="live-status"><span class="status-dot"></span>@(_playing ? "Transmitting" : Media.IsCapturing ? "Receiving" : "Ready when you are")</span></div>
+			@if (_error is not null || Media.CaptureError is not null)
+			{
+				<div class="alert" role="alert">@(_error ?? Media.CaptureError)</div>
+			}
+			@if (_tab == "About")
+			{
+				<About />
+			}
+			else
+			{
+				<div class="studio-grid">
+					<section class="main-panel">
+						@if (_tab == "Practice")
+						{
+							<div class="panel-heading"><span class="eyebrow">01 / LISTEN & LEARN</span><span class="pill">@_attempts attempts this session</span></div>
+							<h2>Find the rhythm.</h2><p>Hear a short sequence or watch it flash. Type the characters you recognize.</p>
+							<div class="form-row">
+								<label>Practice set<select @bind="_alphabet" disabled="@Busy"><option value="ETANIM">First steps · E T A N I M</option><option value="ABCDEFGHIJKLMNOPQRSTUVWXYZ">All letters · A–Z</option><option value="0123456789">Numbers · 0–9</option><option value="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789">Letters & numbers</option></select></label>
+								<label>Group length<input type="number" min="1" max="20" @bind="_groupLength" disabled="@Busy" /></label>
+							</div>
+							<div class="challenge"><span class="eyebrow">COPY THE SIGNAL</span><div class="hidden-sequence">@(_revealed || _result is not null ? _challenge : string.Join(" ", Enumerable.Repeat("•", _challenge.Length)))</div><span>@(_revealed || _result is not null ? Codec.Encode(_challenge) : "Play the signal, then trust your ears.")</span></div>
+							<div class="button-row"><button class="primary" disabled="@Busy" @onclick="() => Play(_challenge)">▶ Play challenge</button><button disabled="@Busy" @onclick="NewChallenge">New challenge</button><button class="text-button" @onclick="() => _revealed = true">Reveal</button></div>
+							<label class="answer-label">Your answer<input placeholder="Type what you heard…" autocomplete="off" spellcheck="false" @bind="_answer" @bind:event="oninput" @onkeydown="AnswerKey" disabled="@(_result is not null)" /></label>
+							<button class="primary" disabled="@(_result is not null || string.IsNullOrWhiteSpace(_answer))" @onclick="CheckAnswer">Check answer ↗</button>
+							@if (_result is not null)
+							{
+								<div class="feedback @(_result.IsCorrect ? "correct" : "")" role="status"><strong>@(_result.IsCorrect ? "Clear copy. Nicely done." : $"The signal was {_result.Expected}.")</strong><span>@_result.CorrectCharacters / @_result.TotalCharacters characters correct · @_result.Accuracy.ToString("0")%</span></div>
+							}
+						}
+						else if (_tab == "Translate")
+						{
+							<div class="panel-heading"><span class="eyebrow">02 / CREATE A SIGNAL</span><span class="pill">Text ↔ Morse</span></div>
+							<h2>Give your message a voice.</h2><p>Convert text or read dots and dashes. Use spaces between letters and / between words.</p>
+							<label>Conversion<select @bind="_conversion"><option value="encode">Text → Morse</option><option value="decode">Morse → Text</option></select></label>
+							<label>Message<textarea rows="5" maxlength="500" @bind="_message" placeholder="Enter text or Morse…"></textarea></label>
+							<div class="button-row"><button class="primary" @onclick="ConvertMessage">Convert</button><button disabled="@Busy" @onclick="PlayMessage">▶ Convert & play</button></div>
+							<div class="translation-output" aria-live="polite"><span class="eyebrow">TRANSLATION</span><p>@_translated</p></div>
+						}
+						else if (_tab == "Receive")
+						{
+							<div class="panel-heading"><span class="eyebrow">03 / TUNE IN</span><span class="pill">Live decoder</span></div>
+							<h2>There’s a message in the noise.</h2><p>Match the sender’s speed and tone. For light, aim the center of your camera at the flashing source.</p>
+							<label>Input source<select value="@_captureKind" @onchange="ChangeInput" disabled="@Busy"><option value="Microphone">Microphone · sound</option><option value="Camera">Camera · light</option></select></label>
+							@if (_captureKind == CaptureKind.Camera)
+							{
+								@if (Media.UsesNativeCapture)
+								{
+									<p class="hint">The iOS receiver uses the rear camera’s center brightness. Point it directly at the light and use the signal meter to align it. Live video preview is available in the web, Windows, and Android apps.</p>
+								}
+								else
+								{
+									<div class="camera-frame"><video id="camera-preview" autoplay muted playsinline aria-label="Camera preview"></video><span class="camera-target"></span></div>
+								}
+								<p class="hint">Start at 5–12 WPM; camera frame rate limits fast signals.</p>
+							}
+							<label>Detection threshold <span>@_threshold.ToString("0.00")</span><input type="range" min="0.05" max="0.95" step="0.01" @bind="_threshold" disabled="@Busy" /></label>
+							<div class="meter" role="meter" aria-label="Signal level" aria-valuemin="0" aria-valuemax="1" aria-valuenow="@Media.Level"><span style="width: @((Media.Level * 100).ToString("0", System.Globalization.CultureInfo.InvariantCulture))%"></span></div>
+							<p class="hint">Set the threshold above the idle level and below the signal peak. Only the selected tone band or center brightness is analyzed.</p>
+							<div class="button-row"><button class="primary" disabled="@Busy" @onclick="StartCapture">● Start receiving</button><button disabled="@(!Media.IsCapturing)" @onclick="StopCapture">Stop receiving</button></div>
+							<div class="translation-output transcript" aria-live="polite"><span class="eyebrow">LIVE TRANSCRIPT</span><p>@(Media.Transcript.Length == 0 ? "Waiting for a signal…" : Media.Transcript)</p><code>@Media.PendingSymbol</code></div>
+							<p class="hint">A � marks an unrecognized sequence. Adjust speed, tone, or threshold and try again. Capture stops when the app is hidden.</p>
+						}
+						else
+						{
+							<div class="panel-heading"><span class="eyebrow">04 / THE ALPHABET</span><span class="pill">Tap to listen</span></div>
+							<h2>Every character has a rhythm.</h2><p>A dash lasts three dots. Leave one dot between elements, three between letters, and seven between words.</p>
+							<div class="alphabet-grid">@foreach (var symbol in MorseAlphabet.Symbols) { <button disabled="@Busy" @onclick="() => Play(symbol.Key.ToString())"><strong>@symbol.Key</strong><code>@symbol.Value</code></button> }</div>
+						}
+					</section>
+					<aside class="control-panel">
+						<div class="panel-heading"><span class="eyebrow">SIGNAL SETTINGS</span><span class="settings-icon">≋</span></div>
+						<div id="signal-lamp" class="signal-lamp" aria-label="Morse signal light"><div class="lamp-center">• − •</div><span>@(_playing ? "SIGNAL IN PROGRESS" : "SIGNAL PREVIEW")</span></div>
+						<fieldset disabled="@Busy"><legend>Output</legend><div class="output-options"><label><input type="checkbox" @bind="_sound" /> Sound</label><label><input type="checkbox" @bind="_light" /> Screen light</label></div>
+						<label>Character speed <span>@_wpm WPM</span><input type="range" min="5" max="40" @bind="_wpm" @bind:after="ClampEffective" /></label>
+						<label>Effective speed <span>@_effectiveWpm WPM</span><input type="range" min="5" max="@_wpm" @bind="_effectiveWpm" /></label>
+						<p class="hint">Lower effective speed adds space between letters without slowing their rhythm.</p>
+						<label>Tone <span>@_frequency Hz</span><input type="range" min="200" max="1500" step="25" @bind="_frequency" /></label>
+						<label>Volume <span>@((_volume * 100).ToString("0"))%</span><input type="range" min="0" max="0.6" step="0.01" @bind="_volume" /></label></fieldset>
+						<button class="stop-button" disabled="@(!_playing)" @onclick="StopPlayback">■ Stop playback</button>
+						<p class="hint light-note">Screen light flashes only when selected. Use sound if you’re sensitive to flashing light.</p>
+					</aside>
+				</div>
+			}
+			<div class="bottom-note"><span>• • • &nbsp; − − − &nbsp; • • •</span><p>Small signals. Endless possibilities.</p><span>LEARN AT YOUR OWN PACE</span></div>
+		</div>
+	</main>
+</div>
+
+@code {
+	private readonly string[] _tabs = ["Practice", "Translate", "Receive", "Reference", "About"];
+	private string _tab = "Practice", _alphabet = "ETANIM", _challenge = "", _answer = "";
+	private string _message = "HELLO WORLD", _translated = "", _conversion = "encode";
+	private string? _error;
+	private int _groupLength = 5, _attempts, _wpm = 15, _effectiveWpm = 12, _frequency = 600;
+	private double _volume = 0.2, _threshold = 0.45;
+	private bool _sound = true, _light, _playing, _starting, _revealed, _disposed;
+	private CaptureKind _captureKind;
+	private TrainingResult? _result;
+	private bool Busy => _playing || _starting || Media.IsCapturing;
+	private string Heading => _tab switch { "Translate" => "Make yourself heard.", "Receive" => "Catch the signal.", "Reference" => "Know the code.", "About" => "About Morse Code Trainer", _ => "A rhythm worth learning." };
+	private string Description => _tab switch { "Translate" => "Turn a thought into dots, dashes, sound, and light.", "Receive" => "Decode Morse from the world around you, in real time.", "Reference" => "Your field guide to International Morse code.", "About" => "A myNOC LLC application for learning the universal language of dots and dashes.", _ => "Build your Morse skills, one sound and one flash at a time." };
+	private static string TabIcon(string tab) => tab switch { "Practice" => "◉", "Translate" => "⇄", "Receive" => "⌁", "About" => "ⓘ", _ => "▦" };
+	protected override void OnInitialized() { Media.Changed += MediaChanged; NewChallenge(); }
+	private void MediaChanged() { if (!_disposed) _ = InvokeAsync(StateHasChanged); }
+	private void ClampEffective() => _effectiveWpm = Math.Min(_effectiveWpm, _wpm);
+	private async Task ChangeTab(string tab)
+	{
+		_error = null;
+		await StopPlayback();
+		if (_error is not null) return;
+		await StopCapture();
+		if (_error is null) _tab = tab;
+	}
+	private void ShowError(Exception error, string fallback)
+	{
+		Logger.LogWarning(error, "{OperationMessage}", fallback);
+		_error = UserMessages.FromException(error, fallback);
+	}
+	private void NewChallenge()
+	{
+		try { _challenge = Training.CreateChallenge(_alphabet, _groupLength); _answer = ""; _result = null; _revealed = false; _error = null; }
+		catch (Exception ex) { ShowError(ex, "Couldn't create a challenge. Choose a practice set and a group length from 1 to 20, then try again."); }
+	}
+	private void CheckAnswer() { if (_result is not null || string.IsNullOrWhiteSpace(_answer)) return; _result = Training.Grade(_challenge, _answer); _attempts++; }
+	private void AnswerKey(KeyboardEventArgs e) { if (e.Key == "Enter") CheckAnswer(); }
+	private void ConvertMessage()
+	{
+		try { _translated = _conversion == "decode" ? Codec.Decode(_message) : Codec.Encode(_message); _error = null; }
+		catch (Exception ex) { _translated = ""; ShowError(ex, "Couldn't convert this message. Check the conversion direction and your message, then try again."); }
+	}
+	private async Task PlayMessage() { ConvertMessage(); if (_error is null) await Play(_conversion == "decode" ? _translated : _message); }
+	private async Task Play(string text)
+	{
+		if (Busy) return;
+		_playing = true; _error = null;
+		try { await Media.PlayAsync(Transmission.Create(text, new(_wpm, _effectiveWpm)), _sound, _light, _frequency, _volume); }
+		catch (Exception ex) { ShowError(ex, "Couldn't play the signal. Check your sound settings and try again."); }
+		finally { _playing = false; }
+	}
+	private async Task StopPlayback()
+	{
+		try { await Media.StopPlaybackAsync(); _playing = false; }
+		catch (Exception ex) { ShowError(ex, "Couldn't stop playback. Try Stop again, or close and reopen the app."); }
+	}
+	private void ChangeInput(ChangeEventArgs e) { _captureKind = Enum.Parse<CaptureKind>(e.Value?.ToString() ?? "Microphone"); _threshold = _captureKind == CaptureKind.Camera ? 0.65 : 0.45; }
+	private async Task StartCapture()
+	{
+		_starting = true; _error = null;
+		try { await Media.StartCaptureAsync(_captureKind, new(_wpm, _effectiveWpm), _threshold, _frequency); }
+		catch (Exception ex) { ShowError(ex, "Couldn't start receiving. Check camera or microphone permissions and close other apps using the device, then try again."); }
+		finally { _starting = false; }
+	}
+	private async Task StopCapture()
+	{
+		try { await Media.StopCaptureAsync(); }
+		catch (Exception ex) { ShowError(ex, "Couldn't stop receiving. Try Stop again, or close and reopen the app."); }
+	}
+	public void Dispose() { _disposed = true; Media.Changed -= MediaChanged; }
+}

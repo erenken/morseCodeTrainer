@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright © 2026 myNOC LLC. All rights reserved. -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:ui="clr-namespace:MorseCodeTrainer.UI;assembly=MorseCodeTrainer.UI"
+	x:Class="MorseCodeTrainer.Maui.MainPage" BackgroundColor="#153e34">
+	<BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html" BlazorWebViewInitialized="OnWebViewInitialized">
+		<BlazorWebView.RootComponents>
+			<RootComponent Selector="#app" ComponentType="{x:Type ui:Trainer}" />
+		</BlazorWebView.RootComponents>
+	</BlazorWebView>
+</ContentPage>

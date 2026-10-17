@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+	<PropertyGroup>
+		<TargetFrameworks>net11.0-android;net11.0-ios</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net11.0-windows10.0.26100.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(MauiTargetFramework)' != ''">$(MauiTargetFramework)</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<EnableDefaultCssItems>false</EnableDefaultCssItems>
+		<ApplicationTitle>Morse Code Trainer</ApplicationTitle>
+		<ApplicationId>com.mynoc.morsecodetrainer</ApplicationId>
+		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+		<WindowsPackageType>None</WindowsPackageType>
+		<!-- Current stable release and two preceding major releases; reviewed 2026-10-17. See README. -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">18.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">35.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.26100.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.26100.0</TargetPlatformMinVersion>
+	</PropertyGroup>
+	<ItemGroup>
+		<MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" Color="#153e34" />
+		<MauiSplashScreen Include="Resources/Splash/splash.svg" Color="#153e34" BaseSize="128,128" />
+		<MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+		<PackageReference Include="Microsoft.Maui.Controls" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+		<ProjectReference Include="../MorseCodeTrainer.UI/MorseCodeTrainer.UI.csproj" />
+	</ItemGroup>
+</Project>

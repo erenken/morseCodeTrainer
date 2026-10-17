@@ -1,0 +1,149 @@
+name: Validate
+
+on:
+  workflow_call:
+    inputs:
+      base-sha:
+        type: string
+        default: ""
+      version:
+        type: string
+        default: "0.1.0"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests and coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: MSTest with coverage
+        run: dotnet test tests/Portable.Tests.slnx -c Release --warnaserror --logger trx --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory TestResults
+      - name: Media lifecycle tests and JavaScript coverage
+        run: node --test --experimental-test-coverage --test-coverage-include='src/**/*.js' --test-coverage-lines=90 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=TestResults/media.lcov tests/browser/*.test.mjs
+      - name: Coverage gate regression tests
+        run: python -m unittest discover -s tests/ci
+      - name: Require 90% total and changed shared code line coverage
+        env:
+          BASE_SHA: ${{ inputs.base-sha }}
+        shell: bash
+        run: |
+          args=()
+          if [[ -n "$BASE_SHA" ]]; then args+=(--base "$BASE_SHA"); fi
+          python scripts/check_coverage.py --lcov TestResults/media.lcov "${args[@]}"
+      - name: Publish standalone SPA
+        env:
+          VERSION: ${{ inputs.version }}
+        run: dotnet publish src/MorseCodeTrainer.Web -c Release --warnaserror -p:Version="$VERSION" -o artifacts/web
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: web-spa
+          path: artifacts/web/wwwroot
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: test-results
+          path: TestResults/
+          if-no-files-found: error
+
+  native:
+    name: Native (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            runner: windows-latest
+            framework: net11.0-windows10.0.26100.0
+            workload: maui-windows
+            rid: win-x64
+          - platform: Android
+            runner: windows-latest
+            framework: net11.0-android
+            workload: maui-android
+            rid: android-arm64
+          - platform: iOS
+            runner: macos-26
+            framework: net11.0-ios
+            workload: maui-ios
+            rid: iossimulator-arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-java@v5
+        if: matrix.platform == 'Android'
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Select Xcode 27.0
+        if: matrix.platform == 'iOS'
+        run: sudo xcode-select --switch /Applications/Xcode_27.0.app/Contents/Developer
+      - name: Install pinned MAUI workload
+        run: dotnet workload install ${{ matrix.workload }} --version 11.0.100-rc.2.26509.2
+      - name: Build native app
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: >-
+          dotnet build src/MorseCodeTrainer.Maui -c Release
+          -f ${{ matrix.framework }} -p:MauiTargetFramework=${{ matrix.framework }}
+          -p:RuntimeIdentifier=${{ matrix.rid }} -p:Version=$env:VERSION -p:ApplicationDisplayVersion=$env:VERSION
+          -p:ApplicationVersion=${{ github.run_number }}
+          -p:EnableCodeSigning=false -p:AndroidPackageFormats=apk
+          --warnaserror
+      - name: MAUI host tests
+        if: matrix.platform == 'Windows'
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: >-
+          dotnet test tests/MorseCodeTrainer.Maui.Tests -c Release
+          -p:MauiTargetFramework=${{ matrix.framework }}
+          -p:Version=$env:VERSION -p:ApplicationDisplayVersion=$env:VERSION
+          -p:ApplicationVersion=${{ github.run_number }} --warnaserror
+          --logger trx --results-directory TestResults/Maui
+      - name: Upload MAUI test results
+        uses: actions/upload-artifact@v7.0.1
+        if: always() && matrix.platform == 'Windows'
+        with:
+          name: maui-test-results
+          path: TestResults/Maui/
+          if-no-files-found: error
+      - name: Upload native build
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: native-${{ matrix.platform }}
+          path: src/MorseCodeTrainer.Maui/bin/Release/${{ matrix.framework }}/
+          if-no-files-found: error
+
+  required:
+    name: Required checks
+    if: always()
+    needs: [tests, native]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every test, coverage gate, and platform build
+        env:
+          TESTS: ${{ needs.tests.result }}
+          NATIVE: ${{ needs.native.result }}
+        run: test "$TESTS" = success && test "$NATIVE" = success

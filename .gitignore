@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+.artifacts/
+TestResults/
+artifacts/
+*.user
+*.suo
+*.pfx
+*.p12
+*.mobileprovision
+*.keystore
+node_modules/
+__pycache__/
+.DS_Store

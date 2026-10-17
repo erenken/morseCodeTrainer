@@ -1,0 +1,8 @@
+<Solution>
+	<Project Path="../src/MorseCodeTrainer.Core/MorseCodeTrainer.Core.csproj" />
+	<Project Path="../src/MorseCodeTrainer.UI/MorseCodeTrainer.UI.csproj" />
+	<Project Path="../src/MorseCodeTrainer.Web/MorseCodeTrainer.Web.csproj" />
+	<Project Path="MorseCodeTrainer.Core.Tests/MorseCodeTrainer.Core.Tests.csproj" />
+	<Project Path="MorseCodeTrainer.UI.Tests/MorseCodeTrainer.UI.Tests.csproj" />
+	<Project Path="MorseCodeTrainer.Web.Tests/MorseCodeTrainer.Web.Tests.csproj" />
+</Solution>

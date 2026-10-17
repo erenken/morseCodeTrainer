@@ -1,0 +1,9 @@
+{
+  "name": "mynoc-morse-code-trainer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/browser/*.test.mjs",
+    "check": "node --check src/MorseCodeTrainer.UI/wwwroot/media.js"
+  }
+}

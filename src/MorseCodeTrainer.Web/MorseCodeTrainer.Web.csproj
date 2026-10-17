@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+	<PropertyGroup>
+		<TargetFramework>net11.0</TargetFramework>
+		<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+		<StaticWebAssetSpaFallbackEnabled>true</StaticWebAssetSpaFallbackEnabled>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.Gateway" PrivateAssets="all" />
+		<ProjectReference Include="../MorseCodeTrainer.UI/MorseCodeTrainer.UI.csproj" />
+	</ItemGroup>
+</Project>

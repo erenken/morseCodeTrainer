@@ -1,0 +1,20 @@
+name: PR
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+    with:
+      base-sha: ${{ github.event.pull_request.base.sha || '' }}
