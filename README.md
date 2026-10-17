@@ -41,7 +41,7 @@ Open `MorseCodeTrainer.slnx`. Application source is under `src/`, tests under `t
 
 Every source assembly has its own MSTest project referencing that assembly. Tests use NSubstitute at dependency boundaries. The root solution contains all eight projects; `tests/Portable.Tests.slnx` contains the Core/UI/Web projects and their tests for systems without MAUI workloads. The MAUI test project targets Windows and exercises the actual Windows MAUI assembly.
 
-JavaScript media lifecycle tests use Node's built-in test runner. Python tests exercise the coverage gate. Neither requires third-party packages.
+JavaScript media lifecycle tests use Node's built-in test runner. PowerShell tests use pinned Pester 5.7.1 to exercise Azure setup, credential handling, and the coverage gate.
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ JavaScript media lifecycle tests use Node's built-in test runner. Python tests e
 - MAUI workload set `11.0.100-rc.2.26509.2` when developing native apps. Visual Studio-managed workloads can also supply the corresponding RC2 packs.
 - Windows: Windows SDK and WebView2 runtime; Android: JDK 21 and Android SDK API 37 supplied by the MAUI tooling.
 - iOS: a Mac with Xcode **27.0**, macOS 26.6+, and the matching iOS workload. Windows can compile the managed iOS code, but cannot validate a complete native app without a Mac.
-- Node 24+ and Python 3.11+ for the media tests and coverage gate.
+- Node 24+ for media tests and PowerShell 7.4+ (`pwsh`) for provisioning, script tests, and the coverage gate. Install Pester 5.7.1 once: `Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Repository PSGallery -Force -SkipPublisherCheck`.
 
 ```powershell
 dotnet workload install maui --version 11.0.100-rc.2.26509.2
@@ -124,8 +124,8 @@ Run from the repository root. Use a fresh results directory per run so old cover
 ```powershell
 dotnet test tests/Portable.Tests.slnx -c Release --warnaserror --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory artifacts/test-results --logger trx
 node --test --experimental-test-coverage --test-coverage-include='src/**/*.js' --test-coverage-lines=90 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=artifacts/test-results/media.lcov tests/browser/*.test.mjs
-python -m unittest discover -s tests/ci
-python scripts/check_coverage.py --report 'artifacts/test-results/**/coverage.cobertura.xml' --lcov artifacts/test-results/media.lcov
+pwsh -NoProfile -File scripts/Test-Scripts.ps1 -ResultsPath artifacts/test-results/powershell.xml
+pwsh -NoProfile -File scripts/Check-Coverage.ps1 -Report 'artifacts/test-results/**/coverage.cobertura.xml' -Lcov artifacts/test-results/media.lcov
 ```
 
 Run the MAUI tests on Windows with the pinned `maui-windows` workload:
@@ -142,7 +142,7 @@ Coverage includes the shared C# engine, media orchestration, and JavaScript adap
 
 ## GitHub and releases
 
-The root directory is the repository root. GitVersion 6.8.2 and `GitVersion.yml` use WeatherLink's `main` / `work/*` conventions. EditorConfig starts from WeatherLink's tab indentation, constant naming, and private-field conventions, with spaces for JSON/YAML/Python. Dependency versions are centralized in `Directory.Packages.props`.
+The root directory is the repository root. GitVersion 6.8.2 and `GitVersion.yml` use WeatherLink's `main` / `work/*` conventions. EditorConfig starts from WeatherLink's tab indentation, constant naming, and private-field conventions, with spaces for JSON/YAML/Bicep and tabs for PowerShell. Dependency versions are centralized in `Directory.Packages.props`.
 
 ```powershell
 dotnet tool restore

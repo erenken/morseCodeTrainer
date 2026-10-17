@@ -17,7 +17,7 @@ The resource and deployment secret are configured. Application content awaits th
 
 ## One-time setup
 
-Install Python 3.11+, Azure CLI, GitHub CLI, and the Bicep compiler. Sign in to an Azure account with permission to deploy at subscription scope and a GitHub account with repository admin access.
+Install PowerShell 7.4+ (`pwsh`), Azure CLI, GitHub CLI, and the Bicep compiler. Sign in to an Azure account with permission to deploy at subscription scope and a GitHub account with repository admin access.
 
 ```powershell
 az login
@@ -29,8 +29,8 @@ az account list --query "[].{name:name,id:id}" -o table
 Use the intended subscription ID explicitly. The script does not change your Azure CLI default subscription.
 
 ```powershell
-python scripts/setup_azure.py --subscription <subscription-id> --what-if
-python scripts/setup_azure.py --subscription <subscription-id>
+pwsh -NoProfile -File scripts/Setup-Azure.ps1 -Subscription <subscription-id> -Preview
+pwsh -NoProfile -File scripts/Setup-Azure.ps1 -Subscription <subscription-id>
 ```
 
 The script:
@@ -44,7 +44,7 @@ It never writes the token to a file, command argument, ARM output, or console. F
 
 Rerunning setup applies the same Bicep resources and refreshes the GitHub secret. Existing environment reviewers and wait timers are preserved; a broader branch policy is rejected. If GitHub configuration fails after Azure provisioning, the resources remain available and rerunning setup completes configuration.
 
-Options include `--repository owner/repo`, `--location eastus2`, `--resource-group`, `--name`, and `--sku Free|Standard`. Defaults match `infra/main.bicepparam`. The parameter file can also be used directly with Azure CLI, but direct Bicep deployment does not configure GitHub:
+PowerShell options include `-Repository owner/repo`, `-Location eastus2`, `-ResourceGroup`, `-Name`, and `-Sku Free|Standard`. `-Preview` runs Azure what-if without reading credentials or changing GitHub. The script works from any current directory and resolves Bicep relative to its own location. Defaults match `infra/main.bicepparam`. The parameter file can also be used directly with Azure CLI, but direct Bicep deployment does not configure GitHub:
 
 ```powershell
 az deployment sub create --subscription <subscription-id> --location eastus2 --name morse-code-trainer-infrastructure --parameters infra/main.bicepparam
@@ -94,11 +94,13 @@ If the Azure deployment token is rotated in the portal, rerun the setup script t
 
 ## Verification
 
+Install the pinned PowerShell test dependency once: `Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Repository PSGallery -Force -SkipPublisherCheck`. Provisioning itself requires no PowerShell modules.
+
 ```powershell
 az bicep build --file infra/main.bicep --outfile artifacts/infra/main.json
 az bicep build --file infra/custom-domain.bicep --outfile artifacts/infra/custom-domain.json
 az bicep build-params --file infra/main.bicepparam --outfile artifacts/infra/parameters.json
-python -m unittest discover -s tests/ci
+pwsh -NoProfile -File scripts/Test-Scripts.ps1
 dotnet publish src/MorseCodeTrainer.Web -c Release --warnaserror -o artifacts/web
 ```
 

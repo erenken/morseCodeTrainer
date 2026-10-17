@@ -32,7 +32,7 @@ jobs:
           DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         run: |
           if [[ -z "$DEPLOYMENT_TOKEN" ]]; then
-            echo "::error::Run scripts/setup_azure.py to configure the production deployment secret."
+            echo "::error::Run scripts/Setup-Azure.ps1 to configure the production deployment secret."
             exit 1
           fi
           test -f web-spa/index.html

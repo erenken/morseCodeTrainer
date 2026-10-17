@@ -7,7 +7,7 @@ Copyright © 2026 myNOC LLC. All rights reserved.
 - All four projects passed together through the root SLNX in Release with warnings treated as errors and the Windows MAUI target. The portable solution also passed independently with coverage collection.
 - Web tests verify root-component registration and service lifetimes. MAUI tests verify Windows service registration and permission delegation without launching a UI; Android/iOS device behavior still requires the device checklist.
 - 11 Node media lifecycle tests passed.
-- 8 Python coverage-gate tests passed, including failures for uncovered changes and missing reports, plus a real Git-diff regression check for Unicode source when Python UTF-8 mode is disabled.
+- 35 Pester 5.7.1 tests passed for the PowerShell provisioning and coverage scripts, including secure stdin transfer, failure-output redaction, preserved GitHub protections, missing reports, the 90% boundary, and real UTF-8 Git diffs with spaces in source paths. The PowerShell coverage gate reproduced 99.41% (504/507) from the existing application coverage reports. Azure preview mode completed against the provisioned environment without changing resources or GitHub settings.
 - Combined shared C#/JavaScript line coverage: **99.41% (504/507)** after the friendly-error changes. Razor/CSS/native glue are outside this metric; see the README for the exact scope.
 - Complete SLNX Release build passed with the Windows MAUI target and warnings treated as errors.
 - After raising the OS baselines, all 120 MSTest cases passed with the `net11.0-windows10.0.26100.0` target. The generated Windows manifest declares minimum build 26100 (Windows 11 24H2).

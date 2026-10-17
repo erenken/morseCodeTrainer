@@ -28,23 +28,24 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
+      - name: Install pinned Pester
+        shell: pwsh
+        run: Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Repository PSGallery -Force -SkipPublisherCheck
       - name: MSTest with coverage
         run: dotnet test tests/Portable.Tests.slnx -c Release --warnaserror --logger trx --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory TestResults
       - name: Media lifecycle tests and JavaScript coverage
         run: node --test --experimental-test-coverage --test-coverage-include='src/**/*.js' --test-coverage-lines=90 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=TestResults/media.lcov tests/browser/*.test.mjs
-      - name: Coverage gate regression tests
-        run: python -m unittest discover -s tests/ci
+      - name: PowerShell infrastructure and coverage tests
+        shell: pwsh
+        run: ./scripts/Test-Scripts.ps1
       - name: Require 90% total and changed shared code line coverage
         env:
           BASE_SHA: ${{ inputs.base-sha }}
-        shell: bash
+        shell: pwsh
         run: |
-          args=()
-          if [[ -n "$BASE_SHA" ]]; then args+=(--base "$BASE_SHA"); fi
-          python scripts/check_coverage.py --lcov TestResults/media.lcov "${args[@]}"
+          $coverageOptions = @{ Lcov = 'TestResults/media.lcov' }
+          if ($env:BASE_SHA) { $coverageOptions.Base = $env:BASE_SHA }
+          ./scripts/Check-Coverage.ps1 @coverageOptions
       - name: Publish standalone SPA
         env:
           VERSION: ${{ inputs.version }}
