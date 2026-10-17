@@ -1,6 +1,9 @@
 # Copyright © 2026 myNOC LLC. All rights reserved.
 import importlib.util
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -10,6 +13,29 @@ spec.loader.exec_module(gate)
 
 
 class CoverageGateTests(unittest.TestCase):
+    def test_git_diff_handles_unicode_source_with_python_utf8_mode_disabled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            def git(*arguments):
+                return subprocess.run(["git", "-c", "user.name=Coverage tests", "-c", "user.email=coverage@example.invalid", *arguments],
+                                      cwd=directory, check=True, capture_output=True, encoding="utf-8").stdout.strip()
+
+            git("init", "--initial-branch=main")
+            git("commit", "--allow-empty", "-m", "Base")
+            base = git("rev-parse", "HEAD")
+            source = Path(directory) / "src/MorseCodeTrainer.Core/Example.cs"
+            source.parent.mkdir(parents=True)
+            source.write_text('var label = "Morse \u270f";\n', encoding="utf-8")
+            git("add", "src")
+            git("commit", "-m", "Unicode source")
+            report = Path(directory) / "coverage.xml"
+            report.write_text('<coverage><class filename="src/MorseCodeTrainer.Core/Example.cs"><lines><line number="1" hits="1"/></lines></class></coverage>', encoding="utf-8")
+
+            result = subprocess.run([sys.executable, str(Path(gate.__file__).resolve()), "--report", str(report), "--base", base],
+                                    cwd=directory, env={**os.environ, "PYTHONUTF8": "0"}, capture_output=True, encoding="utf-8")
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn("Changed shared code line coverage: 100.00% (1/1)", result.stdout)
+
     def test_relative_report_paths_use_source_roots(self):
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / "coverage.xml"

@@ -112,7 +112,7 @@ def main():
         if args.base:
             if not re.fullmatch(r"[a-fA-F0-9]{40,64}", args.base):
                 raise ValueError("Base must be a full commit SHA.")
-            diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--unified=0", args.base + "...HEAD", "--", "src"], check=True, capture_output=True, text=True).stdout
+            diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--unified=0", args.base + "...HEAD", "--", "src"], check=True, capture_output=True, encoding="utf-8").stdout
             changed = parse_diff(diff)
         return 0 if check(coverage, changed, args.minimum) else 1
     except (ValueError, OSError, ET.ParseError, subprocess.CalledProcessError) as error:
