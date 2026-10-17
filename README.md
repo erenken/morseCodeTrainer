@@ -4,10 +4,10 @@ Copyright © 2026 myNOC LLC. All rights reserved.
 
 A .NET 11 Morse trainer for Windows, Android, iOS, and the browser. A shared Razor UI runs inside MAUI Blazor Hybrid and a standalone Blazor WebAssembly SPA. The browser app needs only static hosting; it does not require an ASP.NET server or account.
 
-Repository: [erenken/morseCodeTrainer](https://github.com/erenken/morseCodeTrainer). The initial application is on `work/initial-setup`; `main` is protected for changes that pass validation. To check out the application on another machine:
+Repository: [erenken/morseCodeTrainer](https://github.com/erenken/morseCodeTrainer). The application is on `main`, which requires pull requests and passing validation. To check out the application on another machine:
 
 ```sh
-git clone --branch work/initial-setup https://github.com/erenken/morseCodeTrainer.git
+git clone https://github.com/erenken/morseCodeTrainer.git
 cd morseCodeTrainer
 ```
 
@@ -136,7 +136,7 @@ dotnet test tests/MorseCodeTrainer.Maui.Tests -c Release -p:MauiTargetFramework=
 
 To run all four C# test projects together on Windows, use `dotnet test MorseCodeTrainer.slnx -c Release -p:MauiTargetFramework=net11.0-windows10.0.26100.0`.
 
-CI has a clean checkout, runs Core/UI/Web tests in the portable test job and MAUI host tests in the Windows native job, builds/publishes the SPA, and builds every native target. The required check depends on all of these jobs. **90% of total and changed shared-code lines must be covered**, with no minimum patch-size exemption. PR comparison uses the merge base with the target branch. Coverage reports missing changed source files cause failure. A documentation-only change still runs tests and enforces total coverage.
+PR validation has a clean checkout, runs Core/UI/Web tests in the portable test job and MAUI host tests in the Windows native job, builds/publishes the SPA, and builds every native target. The required check depends on all of these jobs. **90% of total and changed shared-code lines must be covered**, with no minimum patch-size exemption. PR comparison uses the merge base with the target branch. Coverage reports missing changed source files cause failure. A documentation-only change still runs tests and enforces total coverage.
 
 Coverage includes the shared C# engine, media orchestration, and JavaScript adapter. Razor markup, CSS, generated code, and native platform glue are excluded from the line-coverage metric. Native builds and the device acceptance checklist complement these tests. Mock media tests do not establish real microphone/camera accuracy.
 
@@ -152,11 +152,11 @@ dotnet gitversion
 GitVersion requires an initialized repository with at least one commit. No remote repository, commits, or releases are created by this scaffold.
 
 - **PR:** validation starts when a pull request is opened or reopened, and reruns when commits are pushed to that PR. Work-branch pushes without an open PR do not start validation; manual runs remain available. Checks include test results, total/patch coverage, SPA publishing, and Windows/Android/iOS compilation; a final `validate / Required checks` job fails if any dependency fails or is skipped.
-- **Release:** on `main`, GitVersion determines the version; all validation reruns before creating a GitHub prerelease with the SPA and native build archives. Re-running an existing version keeps its assets unchanged.
+- **Release:** on `main`, GitVersion determines the version, then the shared build workflow rebuilds the SPA and every native target from the merged commit with that version. Tests, coverage, and Bicep validation have already passed on the required up-to-date PR and are not repeated. Successful builds create a GitHub prerelease and supply the SPA artifact for Azure deployment. Re-running an existing version keeps its assets unchanged.
 - Releases are marked prerelease while .NET 11 is RC. Windows is an unpackaged build; Android output is a development APK; iOS output is an unsigned simulator build. Store-ready MSIX/AAB/IPA distribution needs signing identities, provisioning, and store configuration. No signing credentials are embedded.
 - The iOS job uses GitHub's Apple Silicon `xcode-27` preview runner and selects `/Applications/Xcode_27.0.app`. The `macos-26` image does not include Xcode 27.0. If runner images change, select the Xcode version required by the pinned workload; do not suppress the SDK compatibility checks. See [GitHub's Xcode 27 runner announcement](https://github.com/actions/runner-images/issues/14404).
 
-**GitHub protection:** the `Main requires passing validation` ruleset is active in `erenken/morseCodeTrainer`. It requires pull requests and an up-to-date `validate / Required checks` status before merging to `main`. For another repository, import `.github/branch-ruleset.json` under **Settings → Rules → Rulesets** and confirm the status check name after its first run; workflow YAML alone does not enforce merge restrictions.
+**GitHub protection:** the `Main requires passing validation` ruleset is active in `erenken/morseCodeTrainer`. It requires pull requests and an up-to-date `validate / Required checks` status before merging to `main`, with no bypass actors (including administrators). Release relies on these protections, so keep the ruleset active. For another repository, import `.github/branch-ruleset.json` under **Settings → Rules → Rulesets** and confirm the status check name after its first run; workflow YAML alone does not enforce merge restrictions.
 
 To deploy the SPA, publish and serve `artifacts/web/wwwroot` over HTTPS:
 
@@ -168,7 +168,7 @@ The SPA uses one page with in-app tabs; no server-side routes or API are require
 
 ## Azure Static Web Apps
 
-[Azure deployment setup](docs/azure-deployment.md) provisions a Free Static Web App with Bicep and stores its deployment token in the main-only GitHub `production` environment. The Release workflow deploys its validated SPA artifact after a successful release on `main`. Work-branch pushes remain quiet; PRs validate Bicep without deploying.
+[Azure deployment setup](docs/azure-deployment.md) provisions a Free Static Web App with Bicep and stores its deployment token in the main-only GitHub `production` environment. The Release workflow deploys its versioned SPA build after a successful release on `main`. Work-branch pushes remain quiet; PRs validate Bicep without deploying.
 
 ## Device acceptance
 

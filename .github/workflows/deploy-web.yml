@@ -3,6 +3,10 @@ name: Deploy web
 
 on:
   workflow_call:
+    secrets:
+      AZURE_STATIC_WEB_APPS_API_TOKEN:
+        description: Azure Static Web Apps deployment token from the production environment.
+        required: true
 
 permissions:
   contents: read
@@ -13,7 +17,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy validated SPA
+    name: Deploy release SPA
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
