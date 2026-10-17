@@ -166,6 +166,10 @@ dotnet publish src/MorseCodeTrainer.Web -c Release -o artifacts/web
 
 The SPA uses one page with in-app tabs; no server-side routes or API are required. Change the HTML base path if hosting below a subdirectory.
 
+## Azure Static Web Apps
+
+[Azure deployment setup](docs/azure-deployment.md) provisions a Free Static Web App with Bicep and stores its deployment token in the main-only GitHub `production` environment. The Release workflow deploys its validated SPA artifact after a successful release on `main`. Work-branch pushes remain quiet; PRs validate Bicep without deploying.
+
 ## Device acceptance
 
 Before publishing to users, run [the device checklist](docs/device-validation.md) on physical devices.

@@ -72,3 +72,8 @@ jobs:
             gh release create "$tag" web-spa.zip native-Windows.zip native-Android.zip native-iOS.zip \
               --target "$GITHUB_SHA" --title "$tag" --generate-notes --prerelease
           fi
+
+  deploy-web:
+    needs: [validate, release]
+    if: github.ref == 'refs/heads/main' && vars.AZURE_STATIC_WEB_APPS_ENABLED == 'true'
+    uses: ./.github/workflows/deploy-web.yml

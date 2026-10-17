@@ -136,14 +136,29 @@ jobs:
           path: src/MorseCodeTrainer.Maui/bin/Release/${{ matrix.framework }}/
           if-no-files-found: error
 
+  infrastructure:
+    name: Bicep validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned Bicep compiler
+        run: az bicep install --version v0.48.1
+      - name: Compile infrastructure and parameters
+        run: |
+          az bicep build --file infra/main.bicep --outfile "$RUNNER_TEMP/morse-infra.json"
+          az bicep build-params --file infra/main.bicepparam --outfile "$RUNNER_TEMP/morse-parameters.json"
+
   required:
     name: Required checks
     if: always()
-    needs: [tests, native]
+    needs: [tests, native, infrastructure]
     runs-on: ubuntu-latest
     steps:
       - name: Require every test, coverage gate, and platform build
         env:
           TESTS: ${{ needs.tests.result }}
           NATIVE: ${{ needs.native.result }}
-        run: test "$TESTS" = success && test "$NATIVE" = success
+          INFRASTRUCTURE: ${{ needs.infrastructure.result }}
+        run: test "$TESTS" = success && test "$NATIVE" = success && test "$INFRASTRUCTURE" = success
