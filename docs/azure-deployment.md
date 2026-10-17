@@ -78,9 +78,13 @@ Azure validates the CNAME and issues the certificate automatically. Wait for dom
 
 Work-branch pushes do not trigger workflows. PRs run the existing tests, coverage gates, native builds, and Bicep compilation. They do not receive the production secret or deploy previews.
 
-After a PR merges to `main`, the Release workflow runs all validation and creates the GitHub prerelease. It then calls `deploy-web.yml`, which downloads that same run's `web-spa` artifact and deploys it to the `production` environment. Deployment never rebuilds the app in Azure: the pinned .NET SDK has already produced the files. A failed validation or release blocks deployment.
+After a PR merges to `main`, the Release workflow computes the release version and calls `build.yml` to rebuild the SPA and all three native targets from the merged commit. It does not repeat tests, coverage, or Bicep validation. Those remain required on the up-to-date PR, and the active `main` ruleset has no bypass actors. PR validation uses the same build workflow with Windows MAUI host tests enabled.
 
-A manual Release workflow run on `main` can retry deployment. Until setup enables `AZURE_STATIC_WEB_APPS_ENABLED`, the deploy job is skipped and normal validation/releases still work. Set that variable to `false` to pause web deployments. Once enabled, a missing token fails the deploy job rather than pretending to deploy.
+Successful release builds create the GitHub prerelease. Release then calls `deploy-web.yml`, which downloads that same run's `web-spa` artifact and deploys it to the `production` environment. Release artifacts are built from the merged commit with its release version, rather than downloaded from a PR run. Deployment never rebuilds the app in Azure: the pinned .NET SDK has already produced the files. A failed build or release blocks deployment. Keep the PR and required-check protections active; release relies on them.
+
+The deployment token stays in the `production` environment. Release passes its name explicitly to the reusable deployment workflow, which declares it as required and selects that environment. GitHub requires this mapping even for environment-only secrets; omitting it produces an empty value. See [GitHub's reusable workflow secret guidance](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#using-inputs-and-secrets-in-a-reusable-workflow).
+
+A manual Release workflow run on `main` can retry deployment. Until setup enables `AZURE_STATIC_WEB_APPS_ENABLED`, the deploy job is skipped and normal release builds still work. Set that variable to `false` to pause web deployments. Once enabled, a missing token fails the deploy job rather than pretending to deploy.
 
 The infrastructure setup creates hosting, but does not publish local or unreviewed work-branch files. The first application upload occurs after the code reaches `main` and the Release workflow succeeds.
 
