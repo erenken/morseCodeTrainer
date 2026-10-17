@@ -50,6 +50,30 @@ Options include `--repository owner/repo`, `--location eastus2`, `--resource-gro
 az deployment sub create --subscription <subscription-id> --location eastus2 --name morse-code-trainer-infrastructure --parameters infra/main.bicepparam
 ```
 
+## Custom domain and HTTPS
+
+The custom address is [morsecode.mynoc.com](https://morsecode.mynoc.com/). Its domain binding is managed by `infra/custom-domain.bicep`; Azure supplies the managed SSL/TLS certificate. Application uploads to the existing Static Web App serve both the custom hostname and the Azure hostname.
+
+Keep this DNS record at the external DNS provider:
+
+| Type | Name | Target | TTL |
+| --- | --- | --- | --- |
+| CNAME | `morsecode` | `happy-hill-06d0f030f.6.azurestaticapps.net` | 3600 seconds (or provider default) |
+
+The target is a hostname without `https://` or a trailing slash. DNS is managed manually, outside Bicep. No separate TXT record is needed for this CNAME validation method.
+
+For a fresh environment, provision the app first, then add the CNAME using that app's generated hostname. Once public DNS resolves, preview and deploy the domain binding:
+
+```powershell
+az deployment group what-if --subscription <subscription-id> --resource-group rg-morse-code-trainer-prod --name morse-code-trainer-domain --template-file infra/custom-domain.bicep
+az deployment group create --subscription <subscription-id> --resource-group rg-morse-code-trainer-prod --name morse-code-trainer-domain --template-file infra/custom-domain.bicep
+az staticwebapp hostname show --subscription <subscription-id> --resource-group rg-morse-code-trainer-prod --name stapp-morse-code-trainer-prod --hostname morsecode.mynoc.com
+```
+
+The template defaults to the production app and hostname; override `staticWebAppName` and `hostname` with `--parameters` for another environment. It references the existing app and creates only the custom-domain child resource. This separate deployment allows the initial hosting setup to complete before manual DNS changes.
+
+Azure validates the CNAME and issues the certificate automatically. Wait for domain status `Ready`, then open the HTTPS address and check the certificate. If DNS has not propagated, retry the Bicep deployment after it resolves. Keep the CNAME pointed at this app so routing and certificate renewal continue to work. No certificate key or password is stored in GitHub.
+
 ## When deployment runs
 
 Work-branch pushes do not trigger workflows. PRs run the existing tests, coverage gates, native builds, and Bicep compilation. They do not receive the production secret or deploy previews.
@@ -62,7 +86,7 @@ The infrastructure setup creates hosting, but does not publish local or unreview
 
 ## Hosting and credentials
 
-`src/MorseCodeTrainer.Web/wwwroot/staticwebapp.config.json` is copied into the published SPA. It provides SPA navigation fallback, preserves missing framework/static asset errors, supplies WebAssembly MIME types, and allows same-origin camera/microphone access through the Permissions-Policy header. Browser permission prompts still apply. The default Azure hostname uses HTTPS; custom domains can be added later with DNS validation.
+`src/MorseCodeTrainer.Web/wwwroot/staticwebapp.config.json` is copied into the published SPA. It provides SPA navigation fallback, preserves missing framework/static asset errors, supplies WebAssembly MIME types, and allows same-origin camera/microphone access through the Permissions-Policy header. Browser permission prompts still apply. Both the Azure hostname and the configured custom domain use HTTPS with Azure-managed certificates.
 
 The deployment credential is a GitHub environment secret, not a runtime browser setting. There is no Azure service-principal client secret or GitHub personal access token stored in this repository or pipeline. Bicep has no repository token and disables Azure's automatic workflow generation, preserving the PR-only trigger policy.
 
@@ -72,6 +96,7 @@ If the Azure deployment token is rotated in the portal, rerun the setup script t
 
 ```powershell
 az bicep build --file infra/main.bicep --outfile artifacts/infra/main.json
+az bicep build --file infra/custom-domain.bicep --outfile artifacts/infra/custom-domain.json
 az bicep build-params --file infra/main.bicepparam --outfile artifacts/infra/parameters.json
 python -m unittest discover -s tests/ci
 dotnet publish src/MorseCodeTrainer.Web -c Release --warnaserror -o artifacts/web
@@ -79,4 +104,4 @@ dotnet publish src/MorseCodeTrainer.Web -c Release --warnaserror -o artifacts/we
 
 Confirm that `artifacts/web/wwwroot/staticwebapp.config.json` exists. After the first upload, open the HTTPS URL from the GitHub deployment, test app startup and translation, then verify microphone/camera behavior on actual devices.
 
-References: [Bicep provisioning](https://learn.microsoft.com/en-us/azure/static-web-apps/publish-bicep), [deploying prebuilt files](https://learn.microsoft.com/en-us/azure/static-web-apps/build-configuration#skip-building-front-end-app), [Static Web Apps configuration](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration), [deployment tokens](https://learn.microsoft.com/en-us/azure/static-web-apps/deployment-token-management).
+References: [custom domains and managed SSL](https://learn.microsoft.com/en-us/azure/static-web-apps/custom-domain-external), [Bicep provisioning](https://learn.microsoft.com/en-us/azure/static-web-apps/publish-bicep), [deploying prebuilt files](https://learn.microsoft.com/en-us/azure/static-web-apps/build-configuration#skip-building-front-end-app), [Static Web Apps configuration](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration), [deployment tokens](https://learn.microsoft.com/en-us/azure/static-web-apps/deployment-token-management).
