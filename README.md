@@ -158,6 +158,8 @@ GitVersion requires an initialized repository with at least one commit. No remot
 - Releases are marked prerelease while .NET 11 is RC. Windows is an unpackaged build; Android output is a development APK; iOS output is an unsigned simulator build. Store-ready MSIX/AAB/IPA distribution needs signing identities, provisioning, and store configuration. No signing credentials are embedded.
 - The iOS job uses GitHub's Apple Silicon `xcode-27` preview runner and selects `/Applications/Xcode_27.0.app`. The `macos-26` image does not include Xcode 27.0. If runner images change, select the Xcode version required by the pinned workload; do not suppress the SDK compatibility checks. See [GitHub's Xcode 27 runner announcement](https://github.com/actions/runner-images/issues/14404).
 
+Planned native store distribution is described in the [store deployment implementation plan](docs/store-deployment-plan.md): automatic beta delivery after merging, followed by manual approval for production.
+
 **GitHub protection:** the `Main requires passing validation` ruleset is active in `erenken/morseCodeTrainer`. It requires pull requests and an up-to-date `validate / Required checks` status before merging to `main`, with no bypass actors (including administrators). Release relies on these protections, so keep the ruleset active. For another repository, import `.github/branch-ruleset.json` under **Settings → Rules → Rulesets** and confirm the status check name after its first run; workflow YAML alone does not enforce merge restrictions.
 
 To deploy the SPA, publish and serve `artifacts/web/wwwroot` over HTTPS:
