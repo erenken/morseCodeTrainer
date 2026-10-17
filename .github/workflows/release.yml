@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.version.outputs.semVer }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+          global-json-file: global.json
+      - uses: gittools/actions/gitversion/setup@v4.7.0
+        with:
+          versionSpec: "6.8.2"
+      - uses: gittools/actions/gitversion/execute@v4.7.0
+        id: version
+        with:
+          configFilePath: GitVersion.yml
+      - name: Validate release version
+        env:
+          VERSION: ${{ steps.version.outputs.semVer }}
+        run: '[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+
+  validate:
+    needs: version
+    uses: ./.github/workflows/validate.yml
+    with:
+      version: ${{ needs.version.outputs.semver }}
+
+  release:
+    needs: [version, validate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+      - name: Archive validated applications
+        run: |
+          for artifact in web-spa native-Windows native-Android native-iOS; do
+            (cd "artifacts/$artifact" && zip -qr "../../$artifact.zip" .)
+          done
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.version.outputs.semver }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; keeping its assets unchanged."
+          else
+            gh release create "$tag" web-spa.zip native-Windows.zip native-Android.zip native-iOS.zip \
+              --target "$GITHUB_SHA" --title "$tag" --generate-notes --prerelease
+          fi
+
+  deploy-web:
+    needs: [validate, release]
+    if: github.ref == 'refs/heads/main' && vars.AZURE_STATIC_WEB_APPS_ENABLED == 'true'
+    uses: ./.github/workflows/deploy-web.yml

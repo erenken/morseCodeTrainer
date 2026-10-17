@@ -1,0 +1,14 @@
+<Solution>
+	<Folder Name="/src/">
+		<Project Path="src/MorseCodeTrainer.Core/MorseCodeTrainer.Core.csproj" />
+		<Project Path="src/MorseCodeTrainer.UI/MorseCodeTrainer.UI.csproj" />
+		<Project Path="src/MorseCodeTrainer.Web/MorseCodeTrainer.Web.csproj" />
+		<Project Path="src/MorseCodeTrainer.Maui/MorseCodeTrainer.Maui.csproj" />
+	</Folder>
+	<Folder Name="/tests/">
+		<Project Path="tests/MorseCodeTrainer.Core.Tests/MorseCodeTrainer.Core.Tests.csproj" />
+		<Project Path="tests/MorseCodeTrainer.UI.Tests/MorseCodeTrainer.UI.Tests.csproj" />
+		<Project Path="tests/MorseCodeTrainer.Web.Tests/MorseCodeTrainer.Web.Tests.csproj" />
+		<Project Path="tests/MorseCodeTrainer.Maui.Tests/MorseCodeTrainer.Maui.Tests.csproj" />
+	</Folder>
+</Solution>

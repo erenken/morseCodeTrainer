@@ -1,0 +1,13 @@
+<Project>
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>preview</LangVersion>
+		<Company>myNOC LLC</Company>
+		<Authors>myNOC LLC</Authors>
+		<Copyright>Copyright © 2026 myNOC LLC. All rights reserved.</Copyright>
+		<Deterministic>true</Deterministic>
+		<AnalysisLevel>latest</AnalysisLevel>
+		<Version Condition="'$(Version)' == ''">0.1.0</Version>
+	</PropertyGroup>
+</Project>
