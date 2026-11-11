@@ -20,6 +20,7 @@ cd morseCodeTrainer
 - **Transmit:** sine-wave tones, screen flashes, or both; adjustable character speed, Farnsworth effective speed, pitch, and volume. Stop works during playback and pending audio startup.
 - **Receive:** live microphone tone-band measurements and camera center-brightness measurements feed the same C# streaming decoder. Adjustable detection threshold with hysteresis, pulse debounce, and bounded transcript. Unknown sequences display `�`.
 - **Reference:** the full supported alphabet with individual character playback.
+- **Appearance:** light and dark modes with blue controls, orange Morse accents, and red stop/error states. Use the toolbar toggle to switch; the app follows the device theme initially and remembers your choice on this device.
 - **About:** shared across every app, with information about myNOC LLC, the 2026 copyright, and a link to [mynoc.com](https://mynoc.com/).
 
 Error alerts show plain-language validation and recovery guidance. Exception parameter names, runtime resource keys, native error codes, and stack traces are kept in diagnostic logging rather than displayed in the app.

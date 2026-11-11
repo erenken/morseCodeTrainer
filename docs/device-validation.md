@@ -18,7 +18,7 @@ Validate on both the minimum supported and current stable OS generations: Window
 3. **Microphone:** decode an external 600 Hz transmitter, change pitch, vary volume/noise, deny permission, grant after denial, unplug the device, and interrupt with a phone call. Verify devices are released after Stop and backgrounding.
 4. **Camera:** point at a single flashing source; adjust the threshold above idle and below peak. Test 5–12 WPM in different light levels. On iOS, align using the level meter; no video preview is implemented yet.
 5. **Training:** generate groups from each set, replay, reveal, submit partial/extra/wrong answers, press Enter, generate a new challenge, and verify scores reset when the app restarts.
-6. **Platform UX:** portrait/landscape, narrow browser, keyboard focus, screen reader labels, large text, safe areas, and microphone/camera privacy indicators.
+6. **Platform UX:** portrait/landscape, narrow browser, keyboard focus, screen reader labels, large text, safe areas, and microphone/camera privacy indicators. Check light/dark switching, the initial system preference, persistence after restarting, and readable controls, alerts, and signal previews in both modes.
 7. **Distribution:** install the signed candidate on clean devices; test the deployed SPA over HTTPS and under the intended base path. Validate permissions again on the release build because trimming and signing can differ from development builds.
 
 Record device model, OS/browser versions, sender speed/pitch, environment, observed accuracy, and release commit. Do not infer hardware accuracy from test coverage percentages.
