@@ -71,11 +71,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Select Xcode 27.0
+      - name: Select Xcode 27.2
         if: matrix.platform == 'iOS'
-        run: sudo xcode-select --switch /Applications/Xcode_27.0.app/Contents/Developer
+        run: sudo xcode-select --switch /Applications/Xcode_27.2.app/Contents/Developer
       - name: Install pinned MAUI workload
-        run: dotnet workload install ${{ matrix.workload }} --version 11.0.100-rc.2.26509.2
+        run: dotnet workload install ${{ matrix.workload }} --version 11.0.100.1
       - name: Build native app
         shell: pwsh
         env:

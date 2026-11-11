@@ -48,14 +48,14 @@ JavaScript media lifecycle tests use Node's built-in test runner. PowerShell tes
 
 ## Prerequisites
 
-- .NET **11 RC2**, SDK `11.0.100-rc.2.26504.105`, pinned in `global.json`. This is a prerelease target, not .NET 11 GA.
-- MAUI workload set `11.0.100-rc.2.26509.2` when developing native apps. Visual Studio-managed workloads can also supply the corresponding RC2 packs.
+- .NET **11**, SDK `11.0.100`, pinned in `global.json`. Prerelease SDKs are disabled; ASP.NET Core packages use stable `11.0.0` and MAUI packages use `11.0.10`.
+- MAUI workload set `11.0.100.1` when developing native apps. Visual Studio-managed workloads can also supply the corresponding stable packs.
 - Windows: Windows SDK and WebView2 runtime; Android: JDK 21 and Android SDK API 37 supplied by the MAUI tooling.
-- iOS: a Mac with Xcode **27.0**, macOS 26.6+, and the matching iOS workload. Windows can compile the managed iOS code, but cannot validate a complete native app without a Mac.
+- iOS: a Mac with Xcode **27.2**, macOS 26.6+, and the matching iOS workload. Windows can compile the managed iOS code, but cannot validate a complete native app without a Mac.
 - Node 24+ for media tests and PowerShell 7.4+ (`pwsh`) for provisioning, script tests, and the coverage gate. Install Pester 5.7.1 once: `Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Repository PSGallery -Force -SkipPublisherCheck`.
 
 ```powershell
-dotnet workload install maui --version 11.0.100-rc.2.26509.2
+dotnet workload install maui --version 11.0.100.1
 ```
 
 Use only the individual workload (`maui-windows`, `maui-android`, or `maui-ios`) if you develop one native target.
@@ -157,7 +157,7 @@ GitVersion requires an initialized repository with at least one commit. No remot
 - **PR:** validation starts when a pull request is opened or reopened, and reruns when commits are pushed to that PR. Work-branch pushes without an open PR do not start validation; manual runs remain available. Checks include test results, total/patch coverage, SPA publishing, and Windows/Android/iOS compilation; a final `validate / Required checks` job fails if any dependency fails or is skipped.
 - **Release:** on `main`, GitVersion determines the version, then the shared build workflow rebuilds the SPA and every native target from the merged commit with that version. Tests, coverage, and Bicep validation have already passed on the required up-to-date PR and are not repeated. Successful builds create a GitHub prerelease and supply the SPA artifact for Azure deployment. Re-running an existing version keeps its assets unchanged.
 - Releases are marked prerelease while .NET 11 is RC. Windows is an unpackaged build; Android output is a development APK; iOS output is an unsigned simulator build. Store-ready MSIX/AAB/IPA distribution needs signing identities, provisioning, and store configuration. No signing credentials are embedded.
-- The iOS job uses GitHub's Apple Silicon `xcode-27` preview runner and selects `/Applications/Xcode_27.0.app`. The `macos-26` image does not include Xcode 27.0. If runner images change, select the Xcode version required by the pinned workload; do not suppress the SDK compatibility checks. See [GitHub's Xcode 27 runner announcement](https://github.com/actions/runner-images/issues/14404).
+- The iOS job uses GitHub's Apple Silicon `xcode-27` preview runner and selects `/Applications/Xcode_27.2.app` to match the pinned stable iOS workload. If runner images change, select the Xcode version required by the pinned workload; do not suppress the SDK compatibility checks. See [GitHub's Xcode 27 runner announcement](https://github.com/actions/runner-images/issues/14404).
 
 **GitHub protection:** the `Main requires passing validation` ruleset is active in `erenken/morseCodeTrainer`. It requires pull requests and an up-to-date `validate / Required checks` status before merging to `main`, with no bypass actors (including administrators). Release relies on these protections, so keep the ruleset active. For another repository, import `.github/branch-ruleset.json` under **Settings → Rules → Rulesets** and confirm the status check name after its first run; workflow YAML alone does not enforce merge restrictions.
 
