@@ -10,6 +10,10 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
+		#if IOS || ANDROID
+		return new Window(new MobileShell()) { Title = "Morse Code Trainer" };
+#else
 		return new Window(new MainPage()) { Title = "Morse Code Trainer" };
+#endif
 	}
 }
