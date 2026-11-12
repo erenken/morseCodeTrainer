@@ -52,6 +52,7 @@
 }
 body {
 	margin: 0;
+	padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
 }
 ::selection {
 	background: var(--accent);
@@ -100,7 +101,7 @@ a {
 }
 .app-shell {
 	display: flex;
-	min-height: 100vh;
+	min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
 }
 .sidebar {
 	--canvas: #080d18;
@@ -113,7 +114,7 @@ a {
 	width: 245px;
 	flex-shrink: 0;
 	position: fixed;
-	inset: 0 auto 0 0;
+	inset: var(--safe-top) auto var(--safe-bottom) var(--safe-left);
 	background: var(--canvas);
 	color: var(--text);
 	display: flex;
@@ -224,27 +225,6 @@ main {
 	letter-spacing: 1.5px;
 	background: var(--surface);
 	color: var(--muted);
-}
-.topbar-actions {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-}
-.theme-toggle {
-	padding: 8px 11px;
-	font-size: 12px;
-	letter-spacing: 0;
-	white-space: nowrap;
-}
-.theme-label-light,
-:root[data-theme="light"] .theme-label-dark {
-	display: inline-flex;
-	align-items: center;
-	gap: 7px;
-}
-.theme-label-dark,
-:root[data-theme="light"] .theme-label-light {
-	display: none;
 }
 .breadcrumb {
 	margin-left: 10px;
@@ -683,6 +663,7 @@ legend {
 	bottom: 0;
 	left: 0;
 	padding: 18px;
+	padding-bottom: calc(18px + var(--safe-bottom));
 	position: fixed;
 	width: 100%;
 	z-index: 1000;
@@ -879,11 +860,72 @@ legend {
 @media (max-width: 680px) {
 	.signal-lamp.transmitting {
 		position: fixed;
-		right: 18px;
-		bottom: 18px;
+		right: calc(18px + var(--safe-right));
+		bottom: calc(18px + var(--safe-bottom));
 		width: 180px;
 		height: 125px;
 		z-index: 10;
 		box-shadow: 0 4px 30px #0004;
 	}
+}
+
+/* Browsers supply screen insets. MAUI supplies the native content safe area once. */
+:root {
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-right: env(safe-area-inset-right, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--safe-left: env(safe-area-inset-left, 0px);
+}
+:root[data-host="native"] {
+	font-family: -apple-system, Roboto, "Segoe UI", system-ui, sans-serif;
+	--safe-top: 0px;
+	--safe-right: 0px;
+	--safe-bottom: 0px;
+	--safe-left: 0px;
+}
+.native-navigation {
+	display: block;
+}
+.native-navigation main {
+	margin-left: 0;
+}
+/* Use the available window width, including split-screen and unfolded windows. */
+@media (max-width: 760px) {
+	.studio-grid { grid-template-columns: minmax(0, 1fr); }
+	.form-row { grid-template-columns: minmax(0, 2fr) minmax(90px, 1fr); }
+	input:not([type="checkbox"]):not([type="range"]), select, textarea { font-size: 16px; }
+	button, select, .about-link { min-height: 48px; }
+	input[type="range"] { min-height: 24px; }
+}
+@media (max-width: 360px) {
+	.workspace { padding: 20px 12px; }
+	.main-panel, .control-panel { padding: 18px; }
+	.form-row { grid-template-columns: minmax(0, 1fr); }
+	.alphabet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.panel-heading { flex-wrap: wrap; }
+}
+/* Keep interactive content in a reported segment rather than under a physical hinge.
+   Continuous foldable displays without a gap use the normal responsive two-column layout. */
+@media (horizontal-viewport-segments: 2) {
+	body { width: env(viewport-segment-width 0 0); }
+	.app-shell { display: block; }
+	.sidebar { position: static; width: 100%; padding: 20px 17px 10px; }
+	.brand { justify-content: center; margin-bottom: 18px; }
+	.nav-caption, .sidebar-note, footer { display: none; }
+	nav { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 2px; }
+	.nav-item { padding: 12px 10px; font-size: 12px; }
+	.nav-symbol { display: none; }
+	main { margin-left: 0; }
+	.workspace { padding: 24px 16px; }
+	.topbar { padding: 0 16px; }
+	.badge, .live-status, .bottom-note > span:last-child { display: none; }
+	.studio-grid, .form-row { grid-template-columns: minmax(0, 1fr); }
+	.signal-lamp.transmitting { right: calc(100vw - env(viewport-segment-right 0 0) + 18px); }
+	#blazor-error-ui { width: env(viewport-segment-width 0 0); }
+}
+@media (vertical-viewport-segments: 2) {
+	html { height: env(viewport-segment-height 0 0); overflow: hidden; }
+	body { height: 100%; overflow-y: auto; }
+	.sidebar { bottom: calc(100dvh - env(viewport-segment-bottom 0 0)); }
+	.signal-lamp.transmitting, #blazor-error-ui { bottom: calc(100dvh - env(viewport-segment-bottom 0 0) + 18px); }
 }

@@ -2,11 +2,15 @@
 <!-- Copyright © 2026 myNOC LLC. All rights reserved. -->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:MorseCodeTrainer.Maui"
 	xmlns:ui="clr-namespace:MorseCodeTrainer.UI;assembly=MorseCodeTrainer.UI"
-	x:Class="MorseCodeTrainer.Maui.MainPage" BackgroundColor="#080d18">
-	<BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html" BlazorWebViewInitialized="OnWebViewInitialized">
-		<BlazorWebView.RootComponents>
-			<RootComponent Selector="#app" ComponentType="{x:Type ui:Trainer}" />
-		</BlazorWebView.RootComponents>
-	</BlazorWebView>
+	x:Class="MorseCodeTrainer.Maui.MainPage" SafeAreaEdges="All"
+	BackgroundColor="{AppThemeBinding Light=#e8eef7, Dark=#080d18}">
+	<local:AdaptiveContentView>
+		<BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html" BlazorWebViewInitialized="OnWebViewInitialized">
+			<BlazorWebView.RootComponents>
+				<RootComponent Selector="#app" ComponentType="{x:Type ui:Trainer}" />
+			</BlazorWebView.RootComponents>
+		</BlazorWebView>
+	</local:AdaptiveContentView>
 </ContentPage>

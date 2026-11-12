@@ -7,30 +7,27 @@
 @inject TrainingSession Training
 @inject MediaSession Media
 
-<div class="app-shell">
-	<aside class="sidebar">
-		<a class="brand" href="" aria-label="Morse Code Trainer home"><span class="brand-mark">• −</span><span>MORSE<span class="brand-sub">CODE TRAINER</span></span></a>
-		<div class="nav-caption">YOUR SIGNAL STUDIO</div>
-		<nav aria-label="Main navigation">
-			@foreach (var item in _tabs)
-			{
-				<button class="nav-item @(_tab == item ? "selected" : "")" disabled="@_starting" aria-current="@(_tab == item ? "page" : null)" @onclick="() => ChangeTab(item)"><span class="nav-symbol">@TabIcon(item)</span>@item</button>
-			}
-		</nav>
-		<div class="sidebar-note"><span class="status-dot"></span> ALL SIGNALS STAY LOCAL<p>Practice, transmit, and listen.<br />One universal language.</p></div>
-		<footer>© 2026 myNOC LLC</footer>
-	</aside>
+<div class="app-shell @(UseNativeNavigation ? "native-navigation" : "")">
+	@if (!UseNativeNavigation)
+	{
+		<aside class="sidebar">
+			<a class="brand" href="" aria-label="Morse Code Trainer home"><span class="brand-mark">• −</span><span>MORSE<span class="brand-sub">CODE TRAINER</span></span></a>
+			<div class="nav-caption">YOUR SIGNAL STUDIO</div>
+			<nav aria-label="Main navigation">
+				@foreach (var item in _tabs)
+				{
+					<button class="nav-item @(_tab == item ? "selected" : "")" disabled="@_starting" aria-current="@(_tab == item ? "page" : null)" @onclick="() => ChangeTab(item)"><span class="nav-symbol">@TabIcon(item)</span>@item</button>
+				}
+			</nav>
+			<div class="sidebar-note"><span class="status-dot"></span> ALL SIGNALS STAY LOCAL<p>Practice, transmit, and listen.<br />One universal language.</p></div>
+			<footer>© 2026 myNOC LLC</footer>
+		</aside>
+	}
 	<main>
-		<header class="topbar">
-			<span>WORKSPACE <span class="breadcrumb">/ @_tab</span></span>
-			<div class="topbar-actions">
-				<span class="badge">INTERNATIONAL MORSE</span>
-				<button type="button" class="theme-toggle" data-theme-toggle>
-					<span class="theme-label-light"><span aria-hidden="true">☀</span> Light mode</span>
-					<span class="theme-label-dark"><span aria-hidden="true">☾</span> Dark mode</span>
-				</button>
-			</div>
-		</header>
+		@if (!UseNativeNavigation)
+		{
+			<header class="topbar"><span>WORKSPACE <span class="breadcrumb">/ @_tab</span></span><span class="badge">INTERNATIONAL MORSE</span></header>
+		}
 		<div class="workspace">
 			<div class="page-heading"><div><div class="eyebrow">A LITTLE PRACTICE. A CLEARER SIGNAL.</div><h1>@Heading</h1><p>@Description</p></div><span class="live-status"><span class="status-dot"></span>@(_playing ? "Transmitting" : Media.IsCapturing ? "Receiving" : "Ready when you are")</span></div>
 			@if (_error is not null || Media.CaptureError is not null)
@@ -105,12 +102,12 @@
 					<aside class="control-panel">
 						<div class="panel-heading"><span class="eyebrow">SIGNAL SETTINGS</span><span class="settings-icon">≋</span></div>
 						<div id="signal-lamp" class="signal-lamp" aria-label="Morse signal light"><div class="lamp-center">• − •</div><span>@(_playing ? "SIGNAL IN PROGRESS" : "SIGNAL PREVIEW")</span></div>
-						<fieldset disabled="@Busy"><legend>Output</legend><div class="output-options"><label><input type="checkbox" @bind="_sound" /> Sound</label><label><input type="checkbox" @bind="_light" /> Screen light</label></div>
-						<label>Character speed <span>@_wpm WPM</span><input type="range" min="5" max="40" @bind="_wpm" @bind:after="ClampEffective" /></label>
-						<label>Effective speed <span>@_effectiveWpm WPM</span><input type="range" min="5" max="@_wpm" @bind="_effectiveWpm" /></label>
+						<fieldset disabled="@Busy"><legend>Output</legend><div class="output-options"><label><input type="checkbox" @bind="Settings.Sound" /> Sound</label><label><input type="checkbox" @bind="Settings.Light" /> Screen light</label></div>
+						<label>Character speed <span>@Settings.WordsPerMinute WPM</span><input type="range" min="5" max="40" @bind="Settings.WordsPerMinute" @bind:after="Settings.ClampEffectiveSpeed" /></label>
+						<label>Effective speed <span>@Settings.EffectiveWordsPerMinute WPM</span><input type="range" min="5" max="@Settings.WordsPerMinute" @bind="Settings.EffectiveWordsPerMinute" /></label>
 						<p class="hint">Lower effective speed adds space between letters without slowing their rhythm.</p>
-						<label>Tone <span>@_frequency Hz</span><input type="range" min="200" max="1500" step="25" @bind="_frequency" /></label>
-						<label>Volume <span>@((_volume * 100).ToString("0"))%</span><input type="range" min="0" max="0.6" step="0.01" @bind="_volume" /></label></fieldset>
+						<label>Tone <span>@Settings.Frequency Hz</span><input type="range" min="200" max="1500" step="25" @bind="Settings.Frequency" /></label>
+						<label>Volume <span>@((Settings.Volume * 100).ToString("0"))%</span><input type="range" min="0" max="0.6" step="0.01" @bind="Settings.Volume" /></label></fieldset>
 						<button class="stop-button" disabled="@(!_playing)" @onclick="StopPlayback">■ Stop playback</button>
 						<p class="hint light-note">Screen light flashes only when selected. Use sound if you’re sensitive to flashing light.</p>
 					</aside>
@@ -122,22 +119,24 @@
 </div>
 
 @code {
+	[Parameter] public string InitialTab { get; set; } = "Practice";
+	[Parameter] public bool UseNativeNavigation { get; set; }
+	[Parameter] public SignalSettings Settings { get; set; } = new();
 	private readonly string[] _tabs = ["Practice", "Translate", "Receive", "Reference", "About"];
 	private string _tab = "Practice", _alphabet = "ETANIM", _challenge = "", _answer = "";
 	private string _message = "HELLO WORLD", _translated = "", _conversion = "encode";
 	private string? _error;
-	private int _groupLength = 5, _attempts, _wpm = 15, _effectiveWpm = 12, _frequency = 600;
-	private double _volume = 0.2, _threshold = 0.45;
-	private bool _sound = true, _light, _playing, _starting, _revealed, _disposed;
+	private int _groupLength = 5, _attempts;
+	private double _threshold = 0.45;
+	private bool _playing, _starting, _revealed, _disposed;
 	private CaptureKind _captureKind;
 	private TrainingResult? _result;
 	private bool Busy => _playing || _starting || Media.IsCapturing;
 	private string Heading => _tab switch { "Translate" => "Make yourself heard.", "Receive" => "Catch the signal.", "Reference" => "Know the code.", "About" => "About Morse Code Trainer", _ => "A rhythm worth learning." };
 	private string Description => _tab switch { "Translate" => "Turn a thought into dots, dashes, sound, and light.", "Receive" => "Decode Morse from the world around you, in real time.", "Reference" => "Your field guide to International Morse code.", "About" => "A myNOC LLC application for learning the universal language of dots and dashes.", _ => "Build your Morse skills, one sound and one flash at a time." };
 	private static string TabIcon(string tab) => tab switch { "Practice" => "◉", "Translate" => "⇄", "Receive" => "⌁", "About" => "ⓘ", _ => "▦" };
-	protected override void OnInitialized() { Media.Changed += MediaChanged; NewChallenge(); }
+	protected override void OnInitialized() { _tab = _tabs.Contains(InitialTab) ? InitialTab : "Practice"; Media.Changed += MediaChanged; Settings.Changed += MediaChanged; NewChallenge(); }
 	private void MediaChanged() { if (!_disposed) _ = InvokeAsync(StateHasChanged); }
-	private void ClampEffective() => _effectiveWpm = Math.Min(_effectiveWpm, _wpm);
 	private async Task ChangeTab(string tab)
 	{
 		_error = null;
@@ -168,7 +167,7 @@
 	{
 		if (Busy) return;
 		_playing = true; _error = null;
-		try { await Media.PlayAsync(Transmission.Create(text, new(_wpm, _effectiveWpm)), _sound, _light, _frequency, _volume); }
+		try { await Media.PlayAsync(Transmission.Create(text, new(Settings.WordsPerMinute, Settings.EffectiveWordsPerMinute)), Settings.Sound, Settings.Light, Settings.Frequency, Settings.Volume); }
 		catch (Exception ex) { ShowError(ex, "Couldn't play the signal. Check your sound settings and try again."); }
 		finally { _playing = false; }
 	}
@@ -181,7 +180,7 @@
 	private async Task StartCapture()
 	{
 		_starting = true; _error = null;
-		try { await Media.StartCaptureAsync(_captureKind, new(_wpm, _effectiveWpm), _threshold, _frequency); }
+		try { await Media.StartCaptureAsync(_captureKind, new(Settings.WordsPerMinute, Settings.EffectiveWordsPerMinute), _threshold, Settings.Frequency); }
 		catch (Exception ex) { ShowError(ex, "Couldn't start receiving. Check camera or microphone permissions and close other apps using the device, then try again."); }
 		finally { _starting = false; }
 	}
@@ -190,5 +189,5 @@
 		try { await Media.StopCaptureAsync(); }
 		catch (Exception ex) { ShowError(ex, "Couldn't stop receiving. Try Stop again, or close and reopen the app."); }
 	}
-	public void Dispose() { _disposed = true; Media.Changed -= MediaChanged; }
+	public void Dispose() { _disposed = true; Media.Changed -= MediaChanged; Settings.Changed -= MediaChanged; }
 }

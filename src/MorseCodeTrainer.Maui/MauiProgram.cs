@@ -10,6 +10,13 @@ public static class MauiProgram
 	{
 		var builder = MauiApp.CreateBuilder().UseMauiApp<App>();
 		builder.Services.AddMauiBlazorWebView();
+#if IOS
+		builder.ConfigureMauiHandlers(handlers =>
+		{
+			if (OperatingSystem.IsIOSVersionAtLeast(27, 1))
+				handlers.AddHandler<AdaptiveContentView, IosAdaptiveContentViewHandler>();
+		});
+#endif
 		ConfigureServices(builder.Services);
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

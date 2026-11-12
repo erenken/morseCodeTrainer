@@ -36,6 +36,7 @@ public sealed class MediaSession(IJSRuntime js, ICapturePermission permission, I
 	private double _lastTimestamp;
 	private bool _disposed;
 	private int _playbackGeneration;
+	private int _captureGeneration;
 	public string Transcript => _decoder?.Text ?? "";
 	public string PendingSymbol => _decoder?.PendingSymbol ?? "";
 	public double Level { get; private set; }
@@ -75,7 +76,9 @@ public sealed class MediaSession(IJSRuntime js, ICapturePermission permission, I
 		if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
 		if (frequency is < 200 or > 1500) throw new ArgumentOutOfRangeException(nameof(frequency));
 		var gate = new SignalThreshold(threshold * 0.7, threshold);
+		var generation = ++_captureGeneration;
 		await permission.EnsureGrantedAsync(kind);
+		if (generation != _captureGeneration) return;
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		_decoder = new(timing);
 		_threshold = gate;
@@ -88,7 +91,11 @@ public sealed class MediaSession(IJSRuntime js, ICapturePermission permission, I
 			if (nativeCapture is not null)
 				await nativeCapture.StartAsync(kind, frequency, ReceiveSamples, CaptureFailed);
 			else
-				await (await ModuleAsync()).InvokeVoidAsync("startCapture", kind == CaptureKind.Camera ? "camera" : "microphone", _callback, frequency);
+			{
+				var module = await ModuleAsync();
+				if (generation != _captureGeneration) return;
+				await module.InvokeVoidAsync("startCapture", kind == CaptureKind.Camera ? "camera" : "microphone", _callback, frequency);
+			}
 		}
 		catch
 		{
@@ -123,6 +130,7 @@ public sealed class MediaSession(IJSRuntime js, ICapturePermission permission, I
 
 	public async Task StopCaptureAsync()
 	{
+		_captureGeneration++;
 		if (nativeCapture is not null) await nativeCapture.StopAsync();
 		if (_module is not null) await _module.InvokeVoidAsync("stopCapture");
 		IsCapturing = false;
@@ -131,10 +139,18 @@ public sealed class MediaSession(IJSRuntime js, ICapturePermission permission, I
 		Changed?.Invoke();
 	}
 
+	// Always attempt both operations, even when stopping playback fails.
+	public async Task SuspendAsync()
+	{
+		try { await StopPlaybackAsync(); }
+		finally { await StopCaptureAsync(); }
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		if (_disposed) return;
 		_disposed = true;
+		_captureGeneration++;
 		_playbackGeneration++;
 		IsCapturing = false;
 		try

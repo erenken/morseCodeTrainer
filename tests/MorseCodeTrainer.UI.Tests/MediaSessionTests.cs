@@ -130,4 +130,42 @@ public sealed class MediaSessionTests
 		Assert.IsNotNull(provider.GetRequiredService<TrainingSession>());
 		await new BrowserCapturePermission().EnsureGrantedAsync(CaptureKind.Camera);
 	}
+	[TestMethod]
+	public async Task LeavingTabDuringPermissionPromptDoesNotStartCaptureLater()
+	{
+		var permission = new TaskCompletionSource();
+		_permission.EnsureGrantedAsync(CaptureKind.Microphone).Returns(permission.Task);
+		await using var session = Create();
+		var pending = session.StartCaptureAsync(CaptureKind.Microphone, new(), 0.6, 600);
+		await session.SuspendAsync();
+		permission.SetResult();
+		await pending;
+		Assert.IsFalse(session.IsCapturing);
+		Assert.IsEmpty(_js.ReceivedCalls());
+	}
+
+	[TestMethod]
+	public async Task LeavingTabDuringModuleImportDoesNotStartCaptureLater()
+	{
+		var import = new TaskCompletionSource<IJSObjectReference>();
+		_js.InvokeAsync<IJSObjectReference>("import", Arg.Any<object?[]>()).Returns(new ValueTask<IJSObjectReference>(import.Task));
+		await using var session = new MediaSession(_js, _permission);
+		var pending = session.StartCaptureAsync(CaptureKind.Camera, new(), 0.6, 600);
+		await session.SuspendAsync();
+		import.SetResult(_module);
+		await pending;
+		Assert.IsFalse(session.IsCapturing);
+		Assert.IsEmpty(_module.ReceivedCalls());
+	}
+
+	[TestMethod]
+	public async Task LeavingTabStopsCaptureEvenIfPlaybackStopFails()
+	{
+		await using var session = Create();
+		await session.StartCaptureAsync(CaptureKind.Camera, new(), 0.6, 600);
+		_module.When(m => m.InvokeAsync<Microsoft.JSInterop.Infrastructure.IJSVoidResult>("stopPlayback", Arg.Any<object?[]>())).Do(_ => throw new JSException("Device failure"));
+		await Assert.ThrowsExactlyAsync<JSException>(() => session.SuspendAsync());
+		Assert.IsFalse(session.IsCapturing);
+		await _module.Received().InvokeAsync<Microsoft.JSInterop.Infrastructure.IJSVoidResult>("stopCapture", Arg.Any<object?[]>());
+	}
 }
